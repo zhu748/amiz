@@ -11,15 +11,17 @@ import type {
   WorldBook
 } from "../types/models";
 
+const LOBBY_CHAT_KEY = "__lobby__";
+
 function uid(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`;
 }
 
 const defaultPreset: ChatPreset = {
   id: uid("preset"),
-  name: "Default",
+  name: "默认预设",
   contextTemplate:
-    "Character Description:\n{{description}}\n\nPersonality:\n{{personality}}\n\nScenario:\n{{scenario}}\n\nUser={{user}}\nCharacter={{char}}",
+    "角色描述:\n{{description}}\n\n性格:\n{{personality}}\n\n场景:\n{{scenario}}\n\n用户={{user}}\n角色={{char}}",
   postHistoryInstructions: "",
   stopSequences: [],
   maxContextTokens: 4096
@@ -39,7 +41,7 @@ interface AppState {
   characters: CharacterProfile[];
   worldBooks: WorldBook[];
   presets: ChatPreset[];
-  messages: ChatMessage[];
+  conversations: Record<string, ChatMessage[]>;
   activeCharacterId?: string;
   activeWorldBookId?: string;
   activePresetId: string;
@@ -57,6 +59,8 @@ interface AppState {
   selectCharacter: (id?: string) => void;
   selectWorldBook: (id?: string) => void;
   selectPreset: (id: string) => void;
+  getActiveConversationKey: () => string;
+  getActiveMessages: () => ChatMessage[];
   pushMessage: (role: ChatMessage["role"], content: string) => void;
   clearMessages: () => void;
   sendMessage: (text: string) => Promise<void>;
@@ -65,12 +69,14 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      userName: "User",
+      userName: "用户",
       apiConfig: defaultApiConfig,
       characters: [],
       worldBooks: [],
       presets: [defaultPreset],
-      messages: [],
+      conversations: {
+        [LOBBY_CHAT_KEY]: []
+      },
       activePresetId: defaultPreset.id,
       loading: false,
       lastPromptTokens: 0,
@@ -110,21 +116,38 @@ export const useAppStore = create<AppState>()(
       selectPreset(id) {
         set({ activePresetId: id });
       },
+      getActiveConversationKey() {
+        const state = get();
+        return state.activeCharacterId ?? LOBBY_CHAT_KEY;
+      },
+      getActiveMessages() {
+        const state = get();
+        const key = state.activeCharacterId ?? LOBBY_CHAT_KEY;
+        return state.conversations[key] ?? [];
+      },
       pushMessage(role, content) {
         set((state) => ({
-          messages: [
-            ...state.messages,
-            {
-              id: uid("msg"),
-              role,
-              content,
-              createdAt: Date.now()
-            }
-          ]
+          conversations: {
+            ...state.conversations,
+            [state.activeCharacterId ?? LOBBY_CHAT_KEY]: [
+              ...(state.conversations[state.activeCharacterId ?? LOBBY_CHAT_KEY] ?? []),
+              {
+                id: uid("msg"),
+                role,
+                content,
+                createdAt: Date.now()
+              }
+            ]
+          }
         }));
       },
       clearMessages() {
-        set({ messages: [] });
+        set((state) => ({
+          conversations: {
+            ...state.conversations,
+            [state.activeCharacterId ?? LOBBY_CHAT_KEY]: []
+          }
+        }));
       },
       async sendMessage(text) {
         const trimmed = text.trim();
@@ -139,8 +162,13 @@ export const useAppStore = create<AppState>()(
           createdAt: Date.now()
         };
 
+        const conversationKey = get().activeCharacterId ?? LOBBY_CHAT_KEY;
+
         set((state) => ({
-          messages: [...state.messages, userMessage],
+          conversations: {
+            ...state.conversations,
+            [conversationKey]: [...(state.conversations[conversationKey] ?? []), userMessage]
+          },
           loading: true,
           lastError: undefined
         }));
@@ -152,21 +180,22 @@ export const useAppStore = create<AppState>()(
           const preset = state.presets.find((item) => item.id === state.activePresetId) ?? defaultPreset;
 
           if (!state.apiConfig.baseUrl.trim()) {
-            throw new Error("Base URL is required.");
+            throw new Error("请填写 Base URL。");
           }
           if (!state.apiConfig.model.trim()) {
-            throw new Error("Model is required.");
+            throw new Error("请填写模型名。");
           }
           if (state.apiConfig.provider !== "koboldcpp" && !state.apiConfig.apiKey.trim()) {
-            throw new Error("API Key is required for OpenAI/Claude.");
+            throw new Error("OpenAI / Claude 必须填写 API Key。");
           }
 
+          const activeMessages = state.conversations[conversationKey] ?? [];
           const context = buildContext({
             userName: state.userName,
             character,
             worldBook,
             preset,
-            messages: state.messages
+            messages: activeMessages
           });
           const adapter = getAdapter(state.apiConfig.provider as ProviderKind);
           const output = await adapter.generate({
@@ -177,15 +206,18 @@ export const useAppStore = create<AppState>()(
           });
 
           set((next) => ({
-            messages: [
-              ...next.messages,
-              {
-                id: uid("msg"),
-                role: "assistant",
-                content: output || "(empty response)",
-                createdAt: Date.now()
-              }
-            ],
+            conversations: {
+              ...next.conversations,
+              [conversationKey]: [
+                ...(next.conversations[conversationKey] ?? []),
+                {
+                  id: uid("msg"),
+                  role: "assistant",
+                  content: output || "（空回复）",
+                  createdAt: Date.now()
+                }
+              ]
+            },
             loading: false,
             lastPromptTokens: context.totalTokens,
             lastLoreInserted: context.loreInserted,
@@ -193,7 +225,7 @@ export const useAppStore = create<AppState>()(
             lastHistoryCount: context.history.length
           }));
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown request error";
+          const message = error instanceof Error ? error.message : "请求失败（未知错误）";
           set({ loading: false, lastError: message });
         }
       }
@@ -206,7 +238,7 @@ export const useAppStore = create<AppState>()(
         characters: state.characters,
         worldBooks: state.worldBooks,
         presets: state.presets,
-        messages: state.messages,
+        conversations: state.conversations,
         activeCharacterId: state.activeCharacterId,
         activeWorldBookId: state.activeWorldBookId,
         activePresetId: state.activePresetId

@@ -21,7 +21,7 @@ export default function App() {
     characters,
     worldBooks,
     presets,
-    messages,
+    conversations,
     activeCharacterId,
     activeWorldBookId,
     activePresetId,
@@ -47,6 +47,14 @@ export default function App() {
   const [importError, setImportError] = useState<string>();
   const { canInstall, install, isInstalled, isOnline } = usePwaInstall();
   const activePreset = useMemo(() => presets.find((item) => item.id === activePresetId), [presets, activePresetId]);
+  const activeMessages = useMemo(
+    () => conversations[activeCharacterId ?? "__lobby__"] ?? [],
+    [conversations, activeCharacterId]
+  );
+  const activeCharacter = useMemo(
+    () => characters.find((character) => character.id === activeCharacterId),
+    [characters, activeCharacterId]
+  );
 
   async function onCharacterImport(event: ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.target.files?.[0];
@@ -100,24 +108,24 @@ export default function App() {
   return (
     <div className="layout">
       <aside className="sidebar">
-        <h1>RP Frontend</h1>
+        <h1>中文角色扮演前端</h1>
         <section>
-          <h2>Android</h2>
+          <h2>手机安装</h2>
           <div className="list">
             <button disabled={!canInstall} onClick={() => void install()}>
-              {canInstall ? "Install To Home Screen" : isInstalled ? "Installed" : "Open in Chrome to Install"}
+              {canInstall ? "安装到主屏幕" : isInstalled ? "已安装" : "请用 Chrome 打开安装"}
             </button>
             <p className={`status ${isOnline ? "online" : "offline"}`}>
-              {isOnline ? "Online" : "Offline (cached mode)"}
+              {isOnline ? "在线" : "离线（缓存模式）"}
             </p>
           </div>
         </section>
         <section>
-          <h2>Character</h2>
+          <h2>角色卡</h2>
           <input type="file" accept=".json,.png" onChange={onCharacterImport} />
           <div className="list">
             <button className={!activeCharacterId ? "active" : ""} onClick={() => selectCharacter(undefined)}>
-              No Character
+              大厅对话 ({conversations.__lobby__?.length ?? 0})
             </button>
             {characters.map((character) => (
               <button
@@ -125,18 +133,18 @@ export default function App() {
                 className={activeCharacterId === character.id ? "active" : ""}
                 onClick={() => selectCharacter(character.id)}
               >
-                {character.name}
+                {character.name} ({conversations[character.id]?.length ?? 0})
               </button>
             ))}
           </div>
         </section>
 
         <section>
-          <h2>World Info</h2>
+          <h2>世界书</h2>
           <input type="file" accept=".json" onChange={onWorldBookImport} />
           <div className="list">
             <button className={!activeWorldBookId ? "active" : ""} onClick={() => selectWorldBook(undefined)}>
-              No Worldbook
+              不使用世界书
             </button>
             {worldBooks.map((book) => (
               <button
@@ -151,7 +159,7 @@ export default function App() {
         </section>
 
         <section>
-          <h2>Presets</h2>
+          <h2>预设</h2>
           <input type="file" accept=".json" onChange={onPresetImport} />
           <div className="list">
             {presets.map((preset) => (
@@ -171,18 +179,18 @@ export default function App() {
               downloadJson(`${activePreset.name}.json`, exportPreset(activePreset));
             }}
           >
-            Export Active Preset
+            导出当前预设
           </button>
         </section>
 
         <section>
-          <h2>Backend</h2>
+          <h2>模型后端</h2>
           <label>
-            User
+            用户名
             <input value={userName} onChange={(e) => setUserName(e.target.value)} />
           </label>
           <label>
-            Provider
+            提供商
             <select
               value={apiConfig.provider}
               onChange={(e) =>
@@ -204,11 +212,11 @@ export default function App() {
               type="password"
               value={apiConfig.apiKey}
               onChange={(e) => updateApiConfig({ apiKey: e.target.value })}
-              placeholder={apiConfig.provider === "koboldcpp" ? "Optional for KoboldCPP" : "Required"}
+              placeholder={apiConfig.provider === "koboldcpp" ? "KoboldCPP 可选" : "必填"}
             />
           </label>
           <label>
-            Model
+            模型名
             <input value={apiConfig.model} onChange={(e) => updateApiConfig({ model: e.target.value })} />
           </label>
         </section>
@@ -220,48 +228,51 @@ export default function App() {
       <main className="chat-panel">
         <header>
           <div>
-            <strong>Token Usage:</strong> {lastPromptTokens} / {activePreset?.maxContextTokens ?? 0}
+            <strong>当前会话:</strong> {activeCharacter?.name ?? "大厅对话"}
           </div>
           <div>
-            <strong>Lore Triggered:</strong> {lastLoreInserted.length}
+            <strong>Token 用量:</strong> {lastPromptTokens} / {activePreset?.maxContextTokens ?? 0}
           </div>
           <div>
-            <strong>History In Window:</strong> {lastHistoryCount}
+            <strong>命中世界书:</strong> {lastLoreInserted.length} 条 / 上下文保留 {lastHistoryCount} 条历史
           </div>
-          <button onClick={clearMessages}>Clear Chat</button>
+          <button onClick={clearMessages}>清空当前会话</button>
         </header>
 
         <div className="messages">
-          {messages.map((message) => (
+          {activeMessages.map((message) => (
             <article key={message.id} className={`msg ${message.role}`}>
-              <div className="role">{message.role}</div>
+              <div className="role">
+                {message.role === "user" ? userName : message.role === "assistant" ? activeCharacter?.name ?? "助手" : "系统"}
+              </div>
               <ReactMarkdown>{message.content}</ReactMarkdown>
             </article>
           ))}
+          {activeMessages.length === 0 ? <p className="empty">这个角色还没有对话，开始第一句吧。</p> : null}
         </div>
 
         <footer>
           <details className="debug-panel">
-            <summary>Context Debug</summary>
+            <summary>上下文调试</summary>
             <div>
-              <strong>Triggered lore entries</strong>
+              <strong>触发的世界书条目</strong>
               <ul>
-                {lastLoreInserted.length === 0 ? <li>None</li> : null}
+                {lastLoreInserted.length === 0 ? <li>无</li> : null}
                 {lastLoreInserted.map((entry, index) => (
                   <li key={`${index}_${entry.slice(0, 12)}`}>{entry}</li>
                 ))}
               </ul>
             </div>
             <div>
-              <strong>System prompt preview</strong>
-              <pre>{lastSystemPrompt || "(No prompt generated yet)"}</pre>
+              <strong>System Prompt 预览</strong>
+              <pre>{lastSystemPrompt || "还未生成上下文"}</pre>
             </div>
           </details>
           <textarea
             rows={4}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type message..."
+            placeholder="输入消息，Enter 发送，Shift+Enter 换行"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -270,7 +281,7 @@ export default function App() {
             }}
           />
           <button disabled={loading || !input.trim()} onClick={() => void onSend()}>
-            {loading ? "Generating..." : "Send"}
+            {loading ? "生成中..." : "发送"}
           </button>
         </footer>
       </main>

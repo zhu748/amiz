@@ -15,7 +15,7 @@
 
 body {
   margin: 0;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
   color: var(--text);
   background:
     radial-gradient(circle at top right, #e5efe7 0%, transparent 45%),
@@ -47,8 +47,7 @@ body {
 .sidebar h2 {
   margin: 0 0 6px;
   font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.02em;
   color: var(--muted);
 }
 
@@ -127,8 +126,7 @@ button.active {
   font-size: 12px;
   color: var(--muted);
   margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.03em;
 }
 
 .chat-panel footer {
@@ -185,6 +183,15 @@ select {
   color: var(--danger);
   margin: 0 0 8px;
   font-size: 12px;
+}
+
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 20px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: #fff;
 }
 
 .status {
