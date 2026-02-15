@@ -96,6 +96,41 @@ body {
   font-size: 12px;
 }
 
+.editor-card {
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fbfcfd;
+}
+
+.editor-card strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.entry-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 8px;
+  background: #fff;
+}
+
+.entry-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.checkbox {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+}
+
 button {
   border: 1px solid var(--line);
   border-radius: 10px;

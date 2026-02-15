@@ -41,7 +41,11 @@ export default function App() {
     setUserName,
     updateApiConfig,
     addCharacter,
+    updateCharacter,
     addWorldBook,
+    addWorldBookEntry,
+    updateWorldBookEntry,
+    removeWorldBookEntry,
     addPreset,
     selectCharacter,
     selectWorldBook,
@@ -53,6 +57,7 @@ export default function App() {
   const [input, setInput] = useState("");
   const [importError, setImportError] = useState<string>();
   const { canInstall, install, isInstalled, isOnline } = usePwaInstall();
+
   const activePreset = useMemo(() => presets.find((item) => item.id === activePresetId), [presets, activePresetId]);
   const activeMessages = useMemo(
     () => conversations[activeCharacterId ?? LOBBY_CHAT_KEY] ?? [],
@@ -61,6 +66,10 @@ export default function App() {
   const activeCharacter = useMemo(
     () => characters.find((character) => character.id === activeCharacterId),
     [characters, activeCharacterId]
+  );
+  const activeWorldBook = useMemo(
+    () => worldBooks.find((book) => book.id === activeWorldBookId),
+    [worldBooks, activeWorldBookId]
   );
 
   const conversationCards = useMemo(() => {
@@ -159,18 +168,60 @@ export default function App() {
         </section>
 
         <section>
-          <h2>手机安装</h2>
-          <div className="list">
-            <button disabled={!canInstall} onClick={() => void install()}>
-              {canInstall ? "安装到主屏幕" : isInstalled ? "已安装" : "请用 Chrome 打开安装"}
-            </button>
-            <p className={`status ${isOnline ? "online" : "offline"}`}>{isOnline ? "在线" : "离线（缓存模式）"}</p>
-          </div>
-        </section>
-
-        <section>
           <h2>角色卡</h2>
           <input type="file" accept=".json,.png" onChange={onCharacterImport} />
+          {activeCharacter ? (
+            <div className="editor-card">
+              <strong>角色详情编辑</strong>
+              <label>
+                名称
+                <input
+                  value={activeCharacter.name}
+                  onChange={(e) => updateCharacter(activeCharacter.id, { name: e.target.value })}
+                />
+              </label>
+              <label>
+                描述
+                <textarea
+                  rows={3}
+                  value={activeCharacter.description}
+                  onChange={(e) => updateCharacter(activeCharacter.id, { description: e.target.value })}
+                />
+              </label>
+              <label>
+                性格
+                <textarea
+                  rows={2}
+                  value={activeCharacter.personality}
+                  onChange={(e) => updateCharacter(activeCharacter.id, { personality: e.target.value })}
+                />
+              </label>
+              <label>
+                场景
+                <textarea
+                  rows={2}
+                  value={activeCharacter.scenario}
+                  onChange={(e) => updateCharacter(activeCharacter.id, { scenario: e.target.value })}
+                />
+              </label>
+              <label>
+                开场白
+                <textarea
+                  rows={2}
+                  value={activeCharacter.firstMessage}
+                  onChange={(e) => updateCharacter(activeCharacter.id, { firstMessage: e.target.value })}
+                />
+              </label>
+              <label>
+                系统提示词
+                <textarea
+                  rows={3}
+                  value={activeCharacter.systemPrompt}
+                  onChange={(e) => updateCharacter(activeCharacter.id, { systemPrompt: e.target.value })}
+                />
+              </label>
+            </div>
+          ) : null}
         </section>
 
         <section>
@@ -190,6 +241,65 @@ export default function App() {
               </button>
             ))}
           </div>
+          {activeWorldBook ? (
+            <div className="editor-card">
+              <strong>世界书条目编辑</strong>
+              <button onClick={() => addWorldBookEntry(activeWorldBook.id)}>新增条目</button>
+              {activeWorldBook.entries.map((entry) => (
+                <div key={entry.id} className="entry-item">
+                  <label>
+                    关键词（逗号分隔）
+                    <input
+                      value={entry.keys.join(", ")}
+                      onChange={(e) =>
+                        updateWorldBookEntry(activeWorldBook.id, entry.id, {
+                          keys: e.target.value
+                            .split(",")
+                            .map((item) => item.trim())
+                            .filter(Boolean)
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    内容
+                    <textarea
+                      rows={3}
+                      value={entry.content}
+                      onChange={(e) =>
+                        updateWorldBookEntry(activeWorldBook.id, entry.id, { content: e.target.value })
+                      }
+                    />
+                  </label>
+                  <div className="entry-row">
+                    <label>
+                      优先级
+                      <input
+                        type="number"
+                        value={entry.priority}
+                        onChange={(e) =>
+                          updateWorldBookEntry(activeWorldBook.id, entry.id, {
+                            priority: Number.isNaN(Number(e.target.value)) ? 0 : Number(e.target.value)
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="checkbox">
+                      <input
+                        type="checkbox"
+                        checked={entry.enabled}
+                        onChange={(e) =>
+                          updateWorldBookEntry(activeWorldBook.id, entry.id, { enabled: e.target.checked })
+                        }
+                      />
+                      启用
+                    </label>
+                    <button onClick={() => removeWorldBookEntry(activeWorldBook.id, entry.id)}>删除</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </section>
 
         <section>
@@ -251,6 +361,16 @@ export default function App() {
             模型名
             <input value={apiConfig.model} onChange={(e) => updateApiConfig({ model: e.target.value })} />
           </label>
+        </section>
+
+        <section>
+          <h2>手机安装</h2>
+          <div className="list">
+            <button disabled={!canInstall} onClick={() => void install()}>
+              {canInstall ? "安装到主屏幕" : isInstalled ? "已安装" : "请用 Chrome 打开安装"}
+            </button>
+            <p className={`status ${isOnline ? "online" : "offline"}`}>{isOnline ? "在线" : "离线（缓存模式）"}</p>
+          </div>
         </section>
 
         {importError ? <p className="error">{importError}</p> : null}

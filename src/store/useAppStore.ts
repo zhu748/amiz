@@ -7,6 +7,7 @@ import type {
   CharacterProfile,
   ChatMessage,
   ChatPreset,
+  LorebookEntry,
   ProviderKind,
   WorldBook
 } from "../types/models";
@@ -53,7 +54,11 @@ interface AppState {
   setUserName: (name: string) => void;
   updateApiConfig: (patch: Partial<ApiConfig>) => void;
   addCharacter: (character: CharacterProfile) => void;
+  updateCharacter: (id: string, patch: Partial<CharacterProfile>) => void;
   addWorldBook: (worldBook: WorldBook) => void;
+  addWorldBookEntry: (worldBookId: string) => void;
+  updateWorldBookEntry: (worldBookId: string, entryId: string, patch: Partial<LorebookEntry>) => void;
+  removeWorldBookEntry: (worldBookId: string, entryId: string) => void;
   addPreset: (preset: ChatPreset) => void;
   selectCharacter: (id?: string) => void;
   selectWorldBook: (id?: string) => void;
@@ -89,13 +94,61 @@ export const useAppStore = create<AppState>()(
       addCharacter(character) {
         set((state) => ({
           characters: [character, ...state.characters],
-          activeCharacterId: state.activeCharacterId ?? character.id
+          activeCharacterId: state.activeCharacterId ?? character.id,
+          conversations: {
+            ...state.conversations,
+            [character.id]: state.conversations[character.id] ?? []
+          }
+        }));
+      },
+      updateCharacter(id, patch) {
+        set((state) => ({
+          characters: state.characters.map((character) =>
+            character.id === id ? { ...character, ...patch } : character
+          )
         }));
       },
       addWorldBook(worldBook) {
         set((state) => ({
           worldBooks: [worldBook, ...state.worldBooks],
           activeWorldBookId: state.activeWorldBookId ?? worldBook.id
+        }));
+      },
+      addWorldBookEntry(worldBookId) {
+        set((state) => ({
+          worldBooks: state.worldBooks.map((book) => {
+            if (book.id !== worldBookId) return book;
+            const entry: LorebookEntry = {
+              id: uid("lore"),
+              keys: [],
+              content: "",
+              enabled: true,
+              priority: book.entries.length
+            };
+            return { ...book, entries: [...book.entries, entry] };
+          })
+        }));
+      },
+      updateWorldBookEntry(worldBookId, entryId, patch) {
+        set((state) => ({
+          worldBooks: state.worldBooks.map((book) => {
+            if (book.id !== worldBookId) return book;
+            return {
+              ...book,
+              entries: book.entries.map((entry) => (entry.id === entryId ? { ...entry, ...patch } : entry))
+            };
+          })
+        }));
+      },
+      removeWorldBookEntry(worldBookId, entryId) {
+        set((state) => ({
+          worldBooks: state.worldBooks.map((book) => {
+            if (book.id !== worldBookId) return book;
+            return {
+              ...book,
+              entries: book.entries.filter((entry) => entry.id !== entryId)
+            };
+          })
         }));
       },
       addPreset(preset) {
