@@ -29,7 +29,8 @@ npm run dev
   - Builds the app
   - Packs `dist` into `rp-frontend-vX.Y.Z.zip`
   - Generates `rp-frontend-vX.Y.Z.zip.sha256`
-  - Creates a GitHub Release and uploads that zip asset
+  - Builds Android `app-debug.apk` via Capacitor
+  - Creates a GitHub Release and uploads web + apk assets
 - `Deploy Pages`: publishes the web app to GitHub Pages on every push to `main`
 
 ## Android Usage (PWA)
@@ -44,6 +45,27 @@ Notes:
 
 - API calls still depend on your backend endpoint and CORS policy.
 - For phone access, prefer HTTPS endpoints and avoid localhost-only APIs.
+
+## Android APK (Capacitor)
+
+Local debug APK build:
+
+```bash
+npm install
+npm run apk:debug
+```
+
+Output:
+
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Release workflow now also attaches this debug APK to GitHub Releases.
+
+Note:
+- `app-debug.apk` is for testing/distribution in trusted scenarios.
+- For store distribution, add release signing and generate `app-release.apk` or `aab`.
 
 ### Release Steps
 

@@ -24,8 +24,25 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Build
         run: npm run build
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Build Android Debug APK
+        run: |
+          cd android
+          ./gradlew assembleDebug
 
       - name: Package dist
         run: |
@@ -35,6 +52,7 @@ jobs:
       - name: Generate checksums
         run: |
           sha256sum rp-frontend-${{ github.ref_name }}.zip > rp-frontend-${{ github.ref_name }}.zip.sha256
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk > rp-frontend-${{ github.ref_name }}-android-debug.apk.sha256
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -43,3 +61,5 @@ jobs:
           files: |
             rp-frontend-${{ github.ref_name }}.zip
             rp-frontend-${{ github.ref_name }}.zip.sha256
+            android/app/build/outputs/apk/debug/app-debug.apk
+            rp-frontend-${{ github.ref_name }}-android-debug.apk.sha256
