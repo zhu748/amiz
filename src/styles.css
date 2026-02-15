@@ -70,6 +70,32 @@ body {
   gap: 6px;
 }
 
+.session-list {
+  display: grid;
+  gap: 6px;
+}
+
+.session-list button {
+  text-align: left;
+}
+
+.session-title {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.session-title span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.session-preview {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 button {
   border: 1px solid var(--line);
   border-radius: 10px;

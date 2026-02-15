@@ -4,6 +4,8 @@ import { exportPreset, importCharacterFile, importPresetFile, importWorldBookFil
 import { usePwaInstall } from "./hooks/usePwaInstall";
 import { useAppStore } from "./store/useAppStore";
 
+const LOBBY_CHAT_KEY = "__lobby__";
+
 function downloadJson(fileName: string, content: string): void {
   const blob = new Blob([content], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -12,6 +14,11 @@ function downloadJson(fileName: string, content: string): void {
   a.download = fileName;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function messagePreview(text: string): string {
+  if (!text) return "暂无消息";
+  return text.length > 24 ? `${text.slice(0, 24)}...` : text;
 }
 
 export default function App() {
@@ -48,13 +55,36 @@ export default function App() {
   const { canInstall, install, isInstalled, isOnline } = usePwaInstall();
   const activePreset = useMemo(() => presets.find((item) => item.id === activePresetId), [presets, activePresetId]);
   const activeMessages = useMemo(
-    () => conversations[activeCharacterId ?? "__lobby__"] ?? [],
+    () => conversations[activeCharacterId ?? LOBBY_CHAT_KEY] ?? [],
     [conversations, activeCharacterId]
   );
   const activeCharacter = useMemo(
     () => characters.find((character) => character.id === activeCharacterId),
     [characters, activeCharacterId]
   );
+
+  const conversationCards = useMemo(() => {
+    const lobbyMessages = conversations[LOBBY_CHAT_KEY] ?? [];
+    const lobbyLast = lobbyMessages[lobbyMessages.length - 1];
+    return [
+      {
+        key: LOBBY_CHAT_KEY,
+        title: "大厅对话",
+        count: lobbyMessages.length,
+        preview: messagePreview(lobbyLast?.content ?? "")
+      },
+      ...characters.map((character) => {
+        const msgs = conversations[character.id] ?? [];
+        const last = msgs[msgs.length - 1];
+        return {
+          key: character.id,
+          title: character.name,
+          count: msgs.length,
+          preview: messagePreview(last?.content ?? "")
+        };
+      })
+    ];
+  }, [characters, conversations]);
 
   async function onCharacterImport(event: ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.target.files?.[0];
@@ -64,7 +94,7 @@ export default function App() {
       addCharacter(character);
       setImportError(undefined);
     } catch (error) {
-      setImportError(error instanceof Error ? error.message : "Character import failed.");
+      setImportError(error instanceof Error ? error.message : "角色卡导入失败。");
     } finally {
       event.target.value = "";
     }
@@ -78,7 +108,7 @@ export default function App() {
       addWorldBook(worldBook);
       setImportError(undefined);
     } catch (error) {
-      setImportError(error instanceof Error ? error.message : "Worldbook import failed.");
+      setImportError(error instanceof Error ? error.message : "世界书导入失败。");
     } finally {
       event.target.value = "";
     }
@@ -92,7 +122,7 @@ export default function App() {
       addPreset(preset);
       setImportError(undefined);
     } catch (error) {
-      setImportError(error instanceof Error ? error.message : "Preset import failed.");
+      setImportError(error instanceof Error ? error.message : "预设导入失败。");
     } finally {
       event.target.value = "";
     }
@@ -109,34 +139,38 @@ export default function App() {
     <div className="layout">
       <aside className="sidebar">
         <h1>中文角色扮演前端</h1>
+
+        <section>
+          <h2>会话列表</h2>
+          <div className="session-list">
+            {conversationCards.map((card) => (
+              <button
+                key={card.key}
+                className={activeCharacterId === (card.key === LOBBY_CHAT_KEY ? undefined : card.key) ? "active" : ""}
+                onClick={() => selectCharacter(card.key === LOBBY_CHAT_KEY ? undefined : card.key)}
+              >
+                <div className="session-title">
+                  {card.title} <span>{card.count}</span>
+                </div>
+                <div className="session-preview">{card.preview}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+
         <section>
           <h2>手机安装</h2>
           <div className="list">
             <button disabled={!canInstall} onClick={() => void install()}>
               {canInstall ? "安装到主屏幕" : isInstalled ? "已安装" : "请用 Chrome 打开安装"}
             </button>
-            <p className={`status ${isOnline ? "online" : "offline"}`}>
-              {isOnline ? "在线" : "离线（缓存模式）"}
-            </p>
+            <p className={`status ${isOnline ? "online" : "offline"}`}>{isOnline ? "在线" : "离线（缓存模式）"}</p>
           </div>
         </section>
+
         <section>
           <h2>角色卡</h2>
           <input type="file" accept=".json,.png" onChange={onCharacterImport} />
-          <div className="list">
-            <button className={!activeCharacterId ? "active" : ""} onClick={() => selectCharacter(undefined)}>
-              大厅对话 ({conversations.__lobby__?.length ?? 0})
-            </button>
-            {characters.map((character) => (
-              <button
-                key={character.id}
-                className={activeCharacterId === character.id ? "active" : ""}
-                onClick={() => selectCharacter(character.id)}
-              >
-                {character.name} ({conversations[character.id]?.length ?? 0})
-              </button>
-            ))}
-          </div>
         </section>
 
         <section>
@@ -193,9 +227,7 @@ export default function App() {
             提供商
             <select
               value={apiConfig.provider}
-              onChange={(e) =>
-                updateApiConfig({ provider: e.target.value as "openai" | "claude" | "koboldcpp" })
-              }
+              onChange={(e) => updateApiConfig({ provider: e.target.value as "openai" | "claude" | "koboldcpp" })}
             >
               <option value="openai">OpenAI</option>
               <option value="claude">Claude</option>

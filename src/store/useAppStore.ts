@@ -20,8 +20,7 @@ function uid(prefix: string): string {
 const defaultPreset: ChatPreset = {
   id: uid("preset"),
   name: "默认预设",
-  contextTemplate:
-    "角色描述:\n{{description}}\n\n性格:\n{{personality}}\n\n场景:\n{{scenario}}\n\n用户={{user}}\n角色={{char}}",
+  contextTemplate: "角色描述:\n{{description}}\n\n性格:\n{{personality}}\n\n场景:\n{{scenario}}\n\n用户={{user}}\n角色={{char}}",
   postHistoryInstructions: "",
   stopSequences: [],
   maxContextTokens: 4096
@@ -59,9 +58,7 @@ interface AppState {
   selectCharacter: (id?: string) => void;
   selectWorldBook: (id?: string) => void;
   selectPreset: (id: string) => void;
-  getActiveConversationKey: () => string;
   getActiveMessages: () => ChatMessage[];
-  pushMessage: (role: ChatMessage["role"], content: string) => void;
   clearMessages: () => void;
   sendMessage: (text: string) => Promise<void>;
 }
@@ -116,30 +113,10 @@ export const useAppStore = create<AppState>()(
       selectPreset(id) {
         set({ activePresetId: id });
       },
-      getActiveConversationKey() {
-        const state = get();
-        return state.activeCharacterId ?? LOBBY_CHAT_KEY;
-      },
       getActiveMessages() {
         const state = get();
         const key = state.activeCharacterId ?? LOBBY_CHAT_KEY;
         return state.conversations[key] ?? [];
-      },
-      pushMessage(role, content) {
-        set((state) => ({
-          conversations: {
-            ...state.conversations,
-            [state.activeCharacterId ?? LOBBY_CHAT_KEY]: [
-              ...(state.conversations[state.activeCharacterId ?? LOBBY_CHAT_KEY] ?? []),
-              {
-                id: uid("msg"),
-                role,
-                content,
-                createdAt: Date.now()
-              }
-            ]
-          }
-        }));
       },
       clearMessages() {
         set((state) => ({
@@ -161,7 +138,6 @@ export const useAppStore = create<AppState>()(
           content: trimmed,
           createdAt: Date.now()
         };
-
         const conversationKey = get().activeCharacterId ?? LOBBY_CHAT_KEY;
 
         set((state) => ({
