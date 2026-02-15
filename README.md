@@ -31,7 +31,7 @@ npm run dev
   - Generates `rp-frontend-vX.Y.Z.zip.sha256`
   - Builds Android `app-debug.apk` via Capacitor
   - Creates a GitHub Release and uploads web + apk assets
-- `Deploy Pages`: publishes the web app to GitHub Pages on every push to `main`
+- `Deploy Pages`: publishes `dist` to `gh-pages` branch on every push to `main`
 
 ## Android Usage (PWA)
 
