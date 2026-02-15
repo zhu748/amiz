@@ -1,6 +1,7 @@
 import { ChangeEvent, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { exportPreset, importCharacterFile, importPresetFile, importWorldBookFile } from "./lib/importers";
+import { usePwaInstall } from "./hooks/usePwaInstall";
 import { useAppStore } from "./store/useAppStore";
 
 function downloadJson(fileName: string, content: string): void {
@@ -44,6 +45,7 @@ export default function App() {
 
   const [input, setInput] = useState("");
   const [importError, setImportError] = useState<string>();
+  const { canInstall, install, isInstalled, isOnline } = usePwaInstall();
   const activePreset = useMemo(() => presets.find((item) => item.id === activePresetId), [presets, activePresetId]);
 
   async function onCharacterImport(event: ChangeEvent<HTMLInputElement>): Promise<void> {
@@ -99,6 +101,17 @@ export default function App() {
     <div className="layout">
       <aside className="sidebar">
         <h1>RP Frontend</h1>
+        <section>
+          <h2>Android</h2>
+          <div className="list">
+            <button disabled={!canInstall} onClick={() => void install()}>
+              {canInstall ? "Install To Home Screen" : isInstalled ? "Installed" : "Open in Chrome to Install"}
+            </button>
+            <p className={`status ${isOnline ? "online" : "offline"}`}>
+              {isOnline ? "Online" : "Offline (cached mode)"}
+            </p>
+          </div>
+        </section>
         <section>
           <h2>Character</h2>
           <input type="file" accept=".json,.png" onChange={onCharacterImport} />

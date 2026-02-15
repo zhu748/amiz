@@ -30,6 +30,20 @@ npm run dev
   - Packs `dist` into `rp-frontend-vX.Y.Z.zip`
   - Generates `rp-frontend-vX.Y.Z.zip.sha256`
   - Creates a GitHub Release and uploads that zip asset
+- `Deploy Pages`: publishes the web app to GitHub Pages on every push to `main`
+
+## Android Usage (PWA)
+
+This project is now configured as an installable PWA for Android:
+
+- Open the GitHub Pages URL in Chrome
+- Tap the in-app `Install To Home Screen` button or browser install prompt
+- Launch it like a native app from your home screen
+
+Notes:
+
+- API calls still depend on your backend endpoint and CORS policy.
+- For phone access, prefer HTTPS endpoints and avoid localhost-only APIs.
 
 ### Release Steps
 

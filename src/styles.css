@@ -74,10 +74,11 @@ body {
 button {
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   background: #fff;
   color: var(--text);
   cursor: pointer;
+  min-height: 40px;
 }
 
 button.active {
@@ -186,6 +187,24 @@ select {
   font-size: 12px;
 }
 
+.status {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status.online {
+  background: #ddf4dd;
+  color: #166534;
+}
+
+.status.offline {
+  background: #ffe8cc;
+  color: #9a3412;
+}
+
 @media (max-width: 940px) {
   .layout {
     grid-template-columns: 1fr;
@@ -193,5 +212,21 @@ select {
   .sidebar {
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+  .chat-panel header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-items: start;
+  }
+  .chat-panel footer {
+    grid-template-columns: 1fr;
+  }
+  .chat-panel footer button {
+    width: 100%;
+  }
+  textarea {
+    min-height: 100px;
+    font-size: 16px;
   }
 }
